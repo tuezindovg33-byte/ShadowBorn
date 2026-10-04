@@ -155,6 +155,7 @@ function getPhaseById(id) {
 
 // Gera a imagem (SVG data-URI) de um NPC, seja padrão ou pixel art customizado
 function getNpcSpriteSrc(npcType) {
+    if (npcType.imageUrl) return npcType.imageUrl
     if (npcType.pixels) return generatePixelArtSvg(npcType.pixels)
     return "data:image/svg+xml;utf8," + encodeURIComponent(npcType.svg)
 }
@@ -355,17 +356,20 @@ async function saveNewNpc() {
     }
 
     const hasAnyPixel = pixelGrid.some(row => row.some(cell => cell))
-    if (!hasAnyPixel) {
-        alert("Desenha alguma coisa no grid de pixel art antes de salvar!")
+    const imageUrl = (document.getElementById("admin-npc-image-url")?.value || "").trim()
+    if (!hasAnyPixel && !imageUrl) {
+        alert("Cole uma URL de imagem ou desenhe o NPC no grid de pixel art antes de salvar!")
         return
     }
 
+    if (imageUrl && !/^(https?:\/\/|data:image\/png;base64,)/i.test(imageUrl)) { alert("Use um link HTTP/HTTPS direto ou uma imagem do computador."); return }
     const config = {
         isBoss: document.getElementById("admin-npc-isboss").checked,
         health: Number(document.getElementById("admin-npc-health").value) || 30,
         damage: Number(document.getElementById("admin-npc-damage").value) || 8,
         speed: Number(document.getElementById("admin-npc-speed").value) || 0.6,
         scale: Number(document.getElementById("admin-npc-scale").value) || 1.8,
+        imageUrl: imageUrl || "",
         pixels: pixelGrid.map(row => row.slice()),
         drops: parseAdminDrops(document.getElementById("admin-npc-drops")?.value || "")
     }
@@ -388,6 +392,9 @@ async function saveNewNpc() {
 
     document.getElementById("admin-npc-name").value = ""
     document.getElementById("admin-npc-isboss").checked = false
+    if (document.getElementById("admin-npc-image-file")) document.getElementById("admin-npc-image-file").value = ""
+    if (document.getElementById("admin-npc-image-url")) document.getElementById("admin-npc-image-url").value = ""
+    if (document.getElementById("admin-npc-image-preview")) document.getElementById("admin-npc-image-preview").removeAttribute("src")
     if (document.getElementById("admin-npc-drops")) document.getElementById("admin-npc-drops").value = ""
     resetPixelEditor()
 
@@ -568,3 +575,4 @@ function refreshAdminSelects() {
 window.refreshAdminContentFromServer = refreshAdminContentFromServer;
 window.getAllNpcTypes = getAllNpcTypes;
 window.getNpcTypeById = getNpcTypeById;
+window.getNpcSpriteSrc = getNpcSpriteSrc;

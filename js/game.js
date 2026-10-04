@@ -50,6 +50,14 @@ function drawBackgroundTiles() {
     const bgImage = getImage(currentPhase.bgValue || ASSET_PATHS.background);
     if (!bgImage.complete || bgImage.naturalWidth === 0) return;
 
+    const paintBackground = (x) => {
+        if (currentPhase.groundSource) {
+            const cut = Math.round(bgImage.naturalHeight * currentPhase.groundSource);
+            const groundY = canvasHeight - floorHeight;
+            ctx.drawImage(bgImage,0,0,bgImage.naturalWidth,cut,x,0,canvasWidth,groundY);
+            ctx.drawImage(bgImage,0,cut,bgImage.naturalWidth,bgImage.naturalHeight-cut,x,groundY,canvasWidth,floorHeight);
+        } else ctx.drawImage(bgImage,x,0,canvasWidth,canvasHeight);
+    };
     const bgWidth = canvasWidth;
     const firstTile = Math.floor(camera.x / bgWidth);
     const lastTile = Math.floor((camera.x + canvasWidth) / bgWidth);
@@ -62,9 +70,9 @@ function drawBackgroundTiles() {
         if (flip) {
             ctx.translate(worldX + bgWidth, 0);
             ctx.scale(-1, 1);
-            ctx.drawImage(bgImage, 0, 0, bgWidth, canvasHeight);
+            paintBackground(0);
         } else {
-            ctx.drawImage(bgImage, worldX, 0, bgWidth, canvasHeight);
+            paintBackground(worldX);
         }
         ctx.restore();
     }
@@ -195,6 +203,9 @@ function renderPhaseSelect() {
             <span>${phase.spawns.length} inimigo(s)${phase.bossTypeId ? ' · 👑 chefão' : ''}${phase.builtin ? '' : ' · personalizada'}</span>
             <button class="btn btn-primary phase-play-btn">▶ Jogar</button>
         `;
+        const unlocked = !window.ShadowRPG || ShadowRPG.isPhaseUnlocked(phase.id);
+        card.querySelector('.phase-play-btn').disabled = !unlocked;
+        if (!unlocked) card.querySelector('.phase-play-btn').textContent = '🔒 Vença o boss anterior';
         card.querySelector('.phase-play-btn').addEventListener('click', () => beginPhase(phase.id));
         el.appendChild(card);
     });
@@ -222,9 +233,12 @@ function showAdminTab(tab) {
     document.getElementById('admin-phases-tab').classList.toggle('hidden', tab !== 'phases');
     document.getElementById('admin-npcs-tab').classList.toggle('hidden', tab !== 'npcs');
     document.getElementById('admin-users-tab').classList.toggle('hidden', tab !== 'users');
+    document.getElementById('admin-items-tab')?.classList.toggle('hidden', tab !== 'items');
     document.getElementById('admin-tab-phases').classList.toggle('active', tab === 'phases');
     document.getElementById('admin-tab-npcs').classList.toggle('active', tab === 'npcs');
     document.getElementById('admin-tab-users').classList.toggle('active', tab === 'users');
+    document.getElementById('admin-tab-items')?.classList.toggle('active', tab === 'items');
+    if (tab === 'items' && typeof window.renderAdminItems === 'function') window.renderAdminItems();
     if (tab === 'users' && typeof renderAdminUsersList === "function") renderAdminUsersList();
 }
 
@@ -269,6 +283,7 @@ function backFromOverlay() {
 }
 
 async function beginPhase(phaseId) {
+    if (window.ShadowRPG && !ShadowRPG.isPhaseUnlocked(phaseId)) return;
     currentPhase = getPhaseById(phaseId) || getAllPhases()[0];
     gameState = "loading";
     hideAllScreens();
@@ -375,6 +390,7 @@ adminBtnMenu.addEventListener('click', showAdmin);
 adminBackBtn.addEventListener('click', showTitle);
 document.getElementById('admin-tab-phases').addEventListener('click', () => showAdminTab('phases'));
 document.getElementById('admin-tab-npcs').addEventListener('click', () => showAdminTab('npcs'));
+ document.getElementById('admin-tab-items')?.addEventListener('click', () => showAdminTab('items'));
 document.getElementById('admin-tab-users').addEventListener('click', () => showAdminTab('users'));
 document.getElementById('admin-add-spawn').addEventListener('click', () => addSpawnToPhaseDraft());
 document.getElementById('admin-save-phase').addEventListener('click', () => saveNewPhase());
@@ -491,7 +507,6 @@ function resolveCombat() {
 
                 if (enemy.isDead) {
                     kills += 1;
-                    if (window.ShadowRPG) ShadowRPG.onEnemyDefeated(enemy);
                     updateHud();
                 }
             }
@@ -511,8 +526,8 @@ function checkPhaseCompletion() {
     if (gameState !== "playing" || phaseCompleted || !currentPhase) return;
 
     if (currentPhase.bossTypeId) {
-        const bossPresent = enemies.some(e => e.type && e.type.id === currentPhase.bossTypeId);
-        if (!bossPresent) triggerPhaseComplete();
+        const boss = enemies.find(e => e.type && e.type.id === currentPhase.bossTypeId);
+        if (boss && boss.isDead) triggerPhaseComplete();
     } else if (player.position.x >= worldWidth - 130) {
         triggerPhaseComplete();
     }
@@ -533,7 +548,7 @@ function triggerPhaseComplete() {
     const phases = getAllPhases();
     const idx = phases.findIndex(p => p.id === currentPhase.id);
     const next = phases[idx + 1];
-    if (next) {
+    if (next && (!window.ShadowRPG || ShadowRPG.isPhaseUnlocked(next.id))) {
         nextPhaseBtn.classList.remove('hidden');
         nextPhaseBtn.dataset.nextId = next.id;
     } else {

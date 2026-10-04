@@ -286,6 +286,20 @@ class Enemy extends Sprite {
             source: getNpcSpriteSrc(type)
         })
 
+        // Imagens próprias seguem a mesma altura base dos sprites de 64px.
+        if (type.imageUrl) {
+            const targetHeight = 64 * (type.scale || 1.8);
+            const fitImage = () => {
+                if (!this.image.naturalHeight) return;
+                this.scale = targetHeight / this.image.naturalHeight;
+                this.width = this.image.naturalWidth * this.scale;
+                this.height = targetHeight;
+                this.position.y = canvas.height - floorHeight - this.height;
+            };
+            if (this.image.complete) fitImage();
+            else this.image.addEventListener('load', fitImage, { once:true });
+        }
+
         this.type = type
         this.name = type.name
         this.isBoss = !!type.isBoss

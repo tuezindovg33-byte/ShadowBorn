@@ -4,7 +4,7 @@
 // ===================================================================
 
 // Cole aqui a URL do seu Apps Script (termina em /exec) depois de implantar.
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyXQqmh6LTLktdQ7JfgAkawNBHLpZpGD_ezwxDQyZdRnIzXcjy2pDt6myycqqX1DtqU-g/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxciuS797XYLTSwu8qADsC07vOw0Z4L0Z_N954Ga4zRDjB2L10YKkTyWdrBYYm4Ay38dw/exec";
 
 const SESSION_KEY = "jogoDeLuta_session_v1";
 

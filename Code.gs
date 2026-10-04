@@ -18,6 +18,7 @@ const SHEET_FASES = 'Fases';
 
 const SHEET_NPCS = 'NpcTypes';
 const SHEET_BOSSES = 'Bosses';
+const SHEET_ITENS = 'Itens';
 
 const ADMIN_EMAIL = 'tuezindovg33@gmail.com';
 
@@ -186,6 +187,9 @@ function doPost(e) {
       case 'listarBosses': resultado = listarBosses(data); break;
       case 'salvarBoss': resultado = salvarBoss(data); break;
       case 'removerBoss': resultado = removerBoss(data); break;
+      case 'listarItens': resultado = listarItens(data); break;
+      case 'salvarItem': resultado = salvarItem(data); break;
+      case 'removerItem': resultado = removerItem(data); break;
       case 'salvarConteudoCompleto': resultado = salvarConteudoCompleto(data); break;
       case 'diagnosticoPlanilha': resultado = diagnosticoPlanilha(); break;
 
@@ -341,6 +345,7 @@ function getSheetFases() { return getSheetGenericaConteudo(SHEET_FASES); }
 
 function getSheetNpcs() { return getSheetGenericaConteudo(SHEET_NPCS); }
 function getSheetBosses() { return getSheetGenericaConteudo(SHEET_BOSSES); }
+function getSheetItens() { return getSheetGenericaConteudo(SHEET_ITENS); }
 
 
 
@@ -563,6 +568,26 @@ function removerBoss(data) {
   catch (err) { return { sucesso: false, mensagem: 'Erro: ' + err.message }; }
 }
 
+
+function listarItens(data) {
+  try { return { sucesso:true, mensagem:'ok', dados:listarConteudo(getSheetItens()) }; }
+  catch(err) { return { sucesso:false, mensagem:'Erro: '+err.message }; }
+}
+function salvarItem(data) {
+  try {
+    if (!ehAdmin(data.adminID)) return { sucesso:false, mensagem:'Acesso negado.' };
+    const sheet=getSheetItens(), id=String(data.id||'').trim(), nome=String(data.nome||'').trim();
+    if(!id||!nome||!data.config) return { sucesso:false, mensagem:'Preencha ID, nome e configuração do item.' };
+    const values=sheet.getDataRange().getValues(), configTxt=JSON.stringify(data.config);
+    for(let i=1;i<values.length;i++){ if(String(values[i][0])===id){ sheet.getRange(i+1,2,1,2).setValues([[nome,configTxt]]); return {sucesso:true,mensagem:'Item atualizado!',dados:{id:id}}; } }
+    sheet.appendRow([id,nome,configTxt,data.adminID,new Date()]);
+    return {sucesso:true,mensagem:'Item criado!',dados:{id:id}};
+  } catch(err) { return { sucesso:false, mensagem:'Erro: '+err.message }; }
+}
+function removerItem(data) {
+  try { return removerConteudo(getSheetItens(), data); }
+  catch(err) { return { sucesso:false, mensagem:'Erro: '+err.message }; }
+}
 // Salva um pacote inteiro de conteúdo em uma única chamada.
 // Útil para futuros editores/importadores e garante que Fase/NPC/Boss
 // usem exatamente o mesmo formato de persistência.
